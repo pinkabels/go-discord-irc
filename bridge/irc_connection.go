@@ -151,7 +151,7 @@ func (i *ircConnection) OnPrivateMessage(e *irc.Event) {
 		i.introducePM(e.Nick)
 
 		msg := fmt.Sprintf(
-			"%s,%s - %s@%s: %s", e.Connection.Server, e.Source,
+			"%s - %s@%s: %s", e.Source,
 			e.Nick, i.manager.bridge.Config.Discriminator, e.Message())
 		_, err := d.Session.ChannelMessageSend(i.pmDiscordChannel, msg)
 		if err != nil {
