@@ -36,7 +36,7 @@ func newIRCListener(dib *Bridge, webIRCPass string) *ircListener {
 	irccon.AddCallback("CTCP_ACTION", listener.OnPrivateMessage)
 
 	irccon.AddCallback("900", func(e *irc.Event) {
-		// Try to rejoni channels after authenticated with NickServ
+		// Try to rejoin channels after authenticated with NickServ
 		listener.JoinChannels()
 	})
 
@@ -61,6 +61,7 @@ func (i *ircListener) nickTrackNick(event *irc.Event) {
 }
 
 func (i *ircListener) OnNickRelayToDiscord(event *irc.Event) {
+	// ignored hostmasks, or we're a puppet? no relay
     if i.bridge.ircManager.isIgnoredHostmask(event.Source) ||
         i.isPuppetNick(event.Nick) ||
         i.isPuppetNick(event.Message()) {
@@ -264,69 +265,69 @@ func (i *ircListener) isPuppetNick(nick string) bool {
 }
 
 func (i *ircListener) OnPrivateMessage(e *irc.Event) {
-        // Ignore private messages
-        if string(e.Arguments[0][0]) != "#" {
-                // If you decide to extend this to respond to PMs, make sure
-                // you do not respond to NOTICEs, see issue #50.
-                return
-        }
+    // Ignore private messages
+    if string(e.Arguments[0][0]) != "#" {
+            // If you decide to extend this to respond to PMs, make sure
+            // you do not respond to NOTICEs, see issue #50.
+            return
+    }
 
-        if i.isPuppetNick(e.Nick) || // ignore msgs from our puppets
-                i.bridge.ircManager.isIgnoredHostmask(e.Source) || // ignored hostmasks
-                i.bridge.ircManager.isFilteredIRCMessage(e.Message()) { // filtered
-                return
-        }
+    if i.isPuppetNick(e.Nick) || // ignore msgs from our puppets
+            i.bridge.ircManager.isIgnoredHostmask(e.Source) || // ignored hostmasks
+            i.bridge.ircManager.isFilteredIRCMessage(e.Message()) { // filtered
+            return
+    }
 
-        content := e.Message()
+    content := e.Message()
 
-        // Convert mentions of relayed (non-puppet) Discord users
-        guildID := i.bridge.Config.GuildID 
-        members, err := i.bridge.discord.Session.GuildMembers(guildID, "", 1000)
-        if err == nil {
-                for _, member := range members {
-                        if member.User == nil {
-                                continue
-                        }
+    // Convert mentions of relayed (non-puppet) Discord users
+    guildID := i.bridge.Config.GuildID 
+    members, err := i.bridge.discord.Session.GuildMembers(guildID, "", 1000)
+    if err == nil {
+            for _, member := range members {
+                    if member.User == nil {
+                            continue
+                    }
 
-                        // Skip if this user has a puppet IRC connection
-                        if i.bridge.ircManager.FindConnectionByDiscordID(member.User.ID) != nil {
-                                continue
-                        }
+                    // Skip if this user has a puppet IRC connection
+                    if i.bridge.ircManager.FindConnectionByDiscordID(member.User.ID) != nil {
+                            continue
+                    }
 
-                        possibleNames := []string{}
-                        if member.Nick != "" {
-                                possibleNames = append(possibleNames, member.Nick)
-                        }
-                        possibleNames = append(possibleNames, member.User.Username)
+                    possibleNames := []string{}
+                    if member.Nick != "" {
+                            possibleNames = append(possibleNames, member.Nick)
+                    }
+                    possibleNames = append(possibleNames, member.User.Username)
 
-                        for _, name := range possibleNames {
-                                if strings.Contains(content, name) {
-                                        content = strings.ReplaceAll(content, name, "<@"+member.User.ID+">")
-                                }
-                        }
-                }
-        }
+                    for _, name := range possibleNames {
+                            if strings.Contains(content, name) {
+                                    content = strings.ReplaceAll(content, name, "<@"+member.User.ID+">")
+                            }
+                    }
+            }
+    }
 
-        replacements := []string{}
-        for _, con := range i.bridge.ircManager.ircConnections {
-                replacements = append(replacements, con.nick, "<@!"+con.discord.ID+">")
-        }
+    replacements := []string{}
+    for _, con := range i.bridge.ircManager.ircConnections {
+            replacements = append(replacements, con.nick, "<@!"+con.discord.ID+">")
+    }
 
-        msg := strings.NewReplacer(
-                replacements...,
-        ).Replace(content)
+    msg := strings.NewReplacer(
+            replacements...,
+    ).Replace(content)
 
-        if e.Code == "CTCP_ACTION" {
-                msg = "_" + msg + "_"
-        }
+    if e.Code == "CTCP_ACTION" {
+            msg = "_" + msg + "_"
+    }
 
-        msg = ircf.BlocksToMarkdown(ircf.Parse(msg))
+    msg = ircf.BlocksToMarkdown(ircf.Parse(msg))
 
-        go func(e *irc.Event) {
-                i.bridge.discordMessagesChan <- IRCMessage{
-                        IRCChannel: e.Arguments[0],
-                        Username:   e.Nick,
-                        Message:    msg,
-                }
-        }(e)
+    go func(e *irc.Event) {
+            i.bridge.discordMessagesChan <- IRCMessage{
+                    IRCChannel: e.Arguments[0],
+                    Username:   e.Nick,
+                    Message:    msg,
+            }
+    }(e)
 }
