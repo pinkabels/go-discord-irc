@@ -42,7 +42,7 @@ func newIRCListener(dib *Bridge, webIRCPass string) *ircListener {
 
 	// Track nick changes for puppets and relay to Discord
 	listener.AddCallback("NICK", func(e *irc.Event) {
-   		listener.nickTrackNick(e)
+		listener.nickTrackNick(e)
 	})
 
 	// Note that this might override SetupNickTrack!
@@ -62,46 +62,46 @@ func (i *ircListener) nickTrackNick(event *irc.Event) {
 
 func (i *ircListener) OnNickRelayToDiscord(event *irc.Event) {
 	// ignored hostmasks, or we're a puppet? no relay
-    if i.bridge.ircManager.isIgnoredHostmask(event.Source) ||
-        i.isPuppetNick(event.Nick) ||
-        i.isPuppetNick(event.Message()) {
-        return
-    }
+	if i.bridge.ircManager.isIgnoredHostmask(event.Source) ||
+		i.isPuppetNick(event.Nick) ||
+		i.isPuppetNick(event.Message()) {
+		return
+	}
 
-    oldNick := event.Nick
-    newNick := event.Message()
-    msg := IRCMessage{
-        Username: "",
-        Message:  fmt.Sprintf("_%s changed their nick to %s_", oldNick, newNick),
-    }
+	oldNick := event.Nick
+	newNick := event.Message()
+	msg := IRCMessage{
+		Username: "",
+		Message:  fmt.Sprintf("_%s changed their nick to %s_", oldNick, newNick),
+	}
 
-    for _, m := range i.bridge.mappings {
-        channel := m.IRCChannel
-        channelObj, ok := i.Connection.GetChannel(channel)
-        if !ok {
-            // Case-insensitive fallback (like in STQUIT)
-            for chName := range i.Connection.Channels {
-                if strings.EqualFold(chName, channel) {
-                    channelObj = i.Connection.Channels[chName]
-                    ok = true
-                    break
-                }
-            }
-        }
-        if !ok {
-            continue
-        }
+	for _, m := range i.bridge.mappings {
+		channel := m.IRCChannel
+		channelObj, ok := i.Connection.GetChannel(channel)
+		if !ok {
+			// Case-insensitive fallback (like in STQUIT)
+			for chName := range i.Connection.Channels {
+				if strings.EqualFold(chName, channel) {
+					channelObj = i.Connection.Channels[chName]
+					ok = true
+					break
+				}
+			}
+		}
+		if !ok {
+			continue
+		}
 
-        // if newNick not found, also try oldNick fallback
-        if _, ok := channelObj.GetUser(newNick); !ok {
-            if _, ok := channelObj.GetUser(oldNick); !ok {
-                continue
-            }
-        }
+		// if newNick not found, also try oldNick fallback
+		if _, ok := channelObj.GetUser(newNick); !ok {
+			if _, ok := channelObj.GetUser(oldNick); !ok {
+				continue
+			}
+		}
 
-        msg.IRCChannel = channel
-        i.bridge.discordMessagesChan <- msg
-    }
+		msg.IRCChannel = channel
+		i.bridge.discordMessagesChan <- msg
+	}
 }
 
 func (i *ircListener) nickTrackPuppetQuit(e *irc.Event) {
@@ -191,21 +191,21 @@ func (i *ircListener) OnJoinQuitCallback(event *irc.Event) {
 			channel := m.IRCChannel
 			channelObj, ok := i.Connection.GetChannel(channel)
 			if !ok {
-                       		// Case-insensitive fallback: IRC servers treat channel names case-insensitively,
-                       		// but the client cache stores them as-is (e.g. #WAROENG vs #waroeng)
-                	        found := false
-                       		for chName := range i.Connection.Channels {
-                      	      		if strings.EqualFold(chName, channel) {
-                                       		 channelObj = i.Connection.Channels[chName]
-                                       		 found = true
-                                       		 break
-                               		}
-                       		}
-                       		if !found {
-                               		log.WithField("channel", channel).WithField("who", who).Warnln("Trying to process QUIT. Channel not found in irc listener cache.")
-                               		continue
-                       		}
-               		}
+				// Case-insensitive fallback: IRC servers treat channel names case-insensitively,
+				// but the client cache stores them as-is (e.g. #WAROENG vs #waroeng)
+				found := false
+				for chName := range i.Connection.Channels {
+					if strings.EqualFold(chName, channel) {
+						channelObj = i.Connection.Channels[chName]
+						found = true
+						break
+					}
+				}
+				if !found {
+					log.WithField("channel", channel).WithField("who", who).Warnln("Trying to process QUIT. Channel not found in irc listener cache.")
+					continue
+				}
+			}
 			if _, ok := channelObj.GetUser(who); !ok {
 				continue
 			}
@@ -265,69 +265,69 @@ func (i *ircListener) isPuppetNick(nick string) bool {
 }
 
 func (i *ircListener) OnPrivateMessage(e *irc.Event) {
-    // Ignore private messages
-    if string(e.Arguments[0][0]) != "#" {
-            // If you decide to extend this to respond to PMs, make sure
-            // you do not respond to NOTICEs, see issue #50.
-            return
-    }
+	// Ignore private messages
+	if string(e.Arguments[0][0]) != "#" {
+		// If you decide to extend this to respond to PMs, make sure
+		// you do not respond to NOTICEs, see issue #50.
+		return
+	}
 
-    if i.isPuppetNick(e.Nick) || // ignore msgs from our puppets
-            i.bridge.ircManager.isIgnoredHostmask(e.Source) || // ignored hostmasks
-            i.bridge.ircManager.isFilteredIRCMessage(e.Message()) { // filtered
-            return
-    }
+	if i.isPuppetNick(e.Nick) || // ignore msgs from our puppets
+		i.bridge.ircManager.isIgnoredHostmask(e.Source) || // ignored hostmasks
+		i.bridge.ircManager.isFilteredIRCMessage(e.Message()) { // filtered
+		return
+	}
 
-    content := e.Message()
+	content := e.Message()
 
-    // Convert mentions of relayed (non-puppet) Discord users
-    guildID := i.bridge.Config.GuildID 
-    members, err := i.bridge.discord.Session.GuildMembers(guildID, "", 1000)
-    if err == nil {
-            for _, member := range members {
-                    if member.User == nil {
-                            continue
-                    }
+	// Convert mentions of relayed (non-puppet) Discord users
+	guildID := i.bridge.Config.GuildID
+	members, err := i.bridge.discord.Session.GuildMembers(guildID, "", 1000)
+	if err == nil {
+		for _, member := range members {
+			if member.User == nil {
+				continue
+			}
 
-                    // Skip if this user has a puppet IRC connection
-                    if i.bridge.ircManager.FindConnectionByDiscordID(member.User.ID) != nil {
-                            continue
-                    }
+			// Skip if this user has a puppet IRC connection
+			if i.bridge.ircManager.FindConnectionByDiscordID(member.User.ID) != nil {
+				continue
+			}
 
-                    possibleNames := []string{}
-                    if member.Nick != "" {
-                            possibleNames = append(possibleNames, member.Nick)
-                    }
-                    possibleNames = append(possibleNames, member.User.Username)
+			possibleNames := []string{}
+			if member.Nick != "" {
+				possibleNames = append(possibleNames, member.Nick)
+			}
+			possibleNames = append(possibleNames, member.User.Username)
 
-                    for _, name := range possibleNames {
-                            if strings.Contains(content, name) {
-                                    content = strings.ReplaceAll(content, name, "<@"+member.User.ID+">")
-                            }
-                    }
-            }
-    }
+			for _, name := range possibleNames {
+				if strings.Contains(content, name) {
+					content = strings.ReplaceAll(content, name, "<@"+member.User.ID+">")
+				}
+			}
+		}
+	}
 
-    replacements := []string{}
-    for _, con := range i.bridge.ircManager.ircConnections {
-            replacements = append(replacements, con.nick, "<@!"+con.discord.ID+">")
-    }
+	replacements := []string{}
+	for _, con := range i.bridge.ircManager.ircConnections {
+		replacements = append(replacements, con.nick, "<@!"+con.discord.ID+">")
+	}
 
-    msg := strings.NewReplacer(
-            replacements...,
-    ).Replace(content)
+	msg := strings.NewReplacer(
+		replacements...,
+	).Replace(content)
 
-    if e.Code == "CTCP_ACTION" {
-            msg = "_" + msg + "_"
-    }
+	if e.Code == "CTCP_ACTION" {
+		msg = "_" + msg + "_"
+	}
 
-    msg = ircf.BlocksToMarkdown(ircf.Parse(msg))
+	msg = ircf.BlocksToMarkdown(ircf.Parse(msg))
 
-    go func(e *irc.Event) {
-            i.bridge.discordMessagesChan <- IRCMessage{
-                    IRCChannel: e.Arguments[0],
-                    Username:   e.Nick,
-                    Message:    msg,
-            }
-    }(e)
+	go func(e *irc.Event) {
+		i.bridge.discordMessagesChan <- IRCMessage{
+			IRCChannel: e.Arguments[0],
+			Username:   e.Nick,
+			Message:    msg,
+		}
+	}(e)
 }
