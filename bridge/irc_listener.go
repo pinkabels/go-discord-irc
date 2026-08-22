@@ -20,7 +20,7 @@ func newIRCListener(dib *Bridge, webIRCPass string) *ircListener {
 	irccon := irc.IRC(dib.Config.IRCListenerName, "discord")
 	listener := &ircListener{irccon, dib, make(map[string]int)}
 
-	dib.SetupIRCConnection(irccon, "discord.", "fd75:f5f5:226f::")
+	dib.SetupIRCConnection(irccon, "bridge/discord/Mystic.Falls", "fd75:f5f5:226f::")
 	listener.SetDebugMode(dib.Config.Debug)
 
 	// Nick tracker for nick tracking

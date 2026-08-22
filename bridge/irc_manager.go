@@ -236,9 +236,9 @@ func (m *IRCManager) HandleUser(user DiscordUser) {
 
 	hostname := user.ID
 	if user.Bot {
-		hostname += ".bot.discord"
+		hostname += ".bot/discord/Mystic.Falls"
 	} else {
-		hostname += ".user.discord"
+		hostname += ".user/discord/Mystic.Falls"
 	}
 
 	con := &ircConnection{
