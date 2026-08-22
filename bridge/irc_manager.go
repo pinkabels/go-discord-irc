@@ -234,7 +234,7 @@ func (m *IRCManager) HandleUser(user DiscordUser) {
 		ip = SnowflakeToIP(baseip, user.ID)
 	}
 
-	hostname := user.ID
+	hostname := nick
 	if user.Bot {
 		hostname += ".bot/discord/Mystic.Falls"
 	} else {
