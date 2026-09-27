@@ -13,6 +13,9 @@ func (d *discordBot) onMessageCreate(s *discordgo.Session, m *discordgo.MessageC
 }
 
 func (d *discordBot) onMessageUpdate(s *discordgo.Session, m *discordgo.MessageUpdate) {
+	if m.EditedTimestamp == nil {
+		return
+	}
 	d.publishMessage(s, m.Message, true)
 }
 
