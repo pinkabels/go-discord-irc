@@ -390,7 +390,9 @@ func (d *discordBot) handlePresenceUpdate(uid string, status discordgo.Status, f
 	// Otherwise get their GuildMember object...
 	user, err := d.Session.State.Member(d.guildID, uid)
 	if err != nil {
-		log.Println(errors.Wrap(err, "get member from state in handlePresenceUpdate failed"))
+		if err != discordgo.ErrStateNotFound {
+			log.Println(errors.Wrap(err, "get member from state in handlePresenceUpdate failed"))
+		}
 		return
 	}
 
